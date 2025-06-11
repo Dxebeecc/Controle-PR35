@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-ovo" />
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Painel de Controle de Pentes (Online)</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -62,7 +62,7 @@
 
 <script>
     // --- CONFIGURAÇÃO ---
-    // !!! COLE A URL DO SEU APP DA WEB DO PASSO 2 AQUI DENTRO DAS ASPAS !!!
+    // Sua URL já está inserida abaixo!
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxo9PLLniGIK_9Bkc086W6yU51XKfL8FF-D5_tr54gETTerdQ0l01u_r4qAcyViRJIAtA/exec";
 
     // --- VARIÁVEIS GLOBAIS ---
@@ -86,23 +86,20 @@
 
     function setLoading(isLoading) {
         darBaixaBtn.disabled = isLoading;
-        controlesSelecao.style.pointerEvents = isLoading ? 'none' : 'auto';
-        controlesSelecao.style.opacity = isLoading ? 0.5 : 1;
+        document.querySelectorAll('#controles-selecao select, #painel-producao select, #painel-producao input, #painel-producao button').forEach(el => el.disabled = isLoading);
+        detalhesPanel.style.opacity = isLoading ? 0.5 : 1;
     }
 
     async function carregarDadosIniciais() {
         detalhesPanel.innerHTML = '<div class="loader"></div>';
-        if (SCRIPT_URL === "SUA_URL_AQUI") {
-            detalhesPanel.innerHTML = '<div class="card text-center text-red-500 font-bold">ERRO: Você precisa colar a URL do seu App da Web no código para que ele funcione.</div>';
-            return;
-        }
         try {
             const response = await fetch(`${SCRIPT_URL}?action=getData`);
+            if (!response.ok) throw new Error('Erro de rede ou permissão negada.');
             const data = await response.json();
             processarDados(data);
             inicializarPainel();
         } catch (error) {
-            detalhesPanel.innerHTML = '<div class="card text-center text-red-500">Erro ao carregar dados. Verifique a URL e as permissões da planilha.</div>';
+            detalhesPanel.innerHTML = `<div class="card text-center text-red-500"><strong>Erro ao carregar dados.</strong><br>Verifique as permissões da planilha e a URL do script.</div>`;
             console.error("Erro:", error);
         }
     }
@@ -156,8 +153,14 @@
     async function handleAjusteManual(cod, quantidade) {
         if (!quantidade || isNaN(quantidade)) return;
         setLoading(true);
+        const url = new URL(SCRIPT_URL);
+        url.searchParams.append('action', 'updateStock');
+        url.searchParams.append('cod', cod);
+        url.searchParams.append('qtde', quantidade);
+
         try {
-            const response = await fetch(`${SCRIPT_URL}?action=updateStock&cod=${cod}&qtde=${quantidade}`);
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Falha na resposta do servidor.');
             const result = await response.json();
             if (result.status === 'success') {
                 estoque[cod] = result.newStock;
@@ -173,11 +176,70 @@
     }
 
     async function handleDarBaixa() {
-        // Lógica de dar baixa, que também chamará a URL do script
-        // Esta função se tornaria mais complexa para lidar com múltiplas requisições
-        alert("Função de dar baixa online ainda a ser implementada em detalhes.");
-    }
+        const modelo = modeloSelect.value;
+        const qtdeProduzida = parseInt(document.getElementById('qtde-produzida').value);
+        const parte = document.getElementById('parte-produzida').value;
 
+        if (qtdeProduzida <= 0) {
+            alert("Por favor, insira uma quantidade válida.");
+            return;
+        }
+
+        const receitaCompleta = receitas[modelo];
+        let itemsParaBaixa = [];
+        
+        const adicionarNaLista = (receitaParte) => {
+            for (const cod in receitaParte) {
+                const qtdeConsumida = receitaParte[cod] * qtdeProduzida;
+                if (estoque[cod] < qtdeConsumida) {
+                    alert(`Estoque insuficiente de ${materiaPrima[cod].nome}! Necessário: ${qtdeConsumida}, Disponível: ${estoque[cod]}.`);
+                    return false;
+                }
+                itemsParaBaixa.push({ cod: cod, qtde: -qtdeConsumida });
+            }
+            return true;
+        };
+        
+        if (parte === 'superior' || parte === 'par') {
+            if (!adicionarNaLista(receitaCompleta.superior)) return;
+        }
+        if (parte === 'inferior' || parte === 'par') {
+            if (!adicionarNaLista(receitaCompleta.inferior)) return;
+        }
+        
+        if (itemsParaBaixa.length > 0) {
+            setLoading(true);
+            // Promise.all executa todas as requisições de baixa em paralelo
+            const promises = itemsParaBaixa.map(item => {
+                const url = new URL(SCRIPT_URL);
+                url.searchParams.append('action', 'updateStock');
+                url.searchParams.append('cod', item.cod);
+                url.searchParams.append('qtde', item.qtde);
+                return fetch(url).then(res => res.json());
+            });
+
+            try {
+                const results = await Promise.all(promises);
+                // Atualiza o estoque local com os resultados do servidor
+                results.forEach((result, index) => {
+                    if (result.status === 'success') {
+                        const cod = itemsParaBaixa[index].cod;
+                        estoque[cod] = result.newStock;
+                    } else {
+                        console.error("Falha ao atualizar o item:", itemsParaBaixa[index].cod);
+                    }
+                });
+                renderizarDetalhes(modeloSelect.value);
+                alert(`Baixa de ${qtdeProduzida} pente(s) ${modelo} (${parte}) realizada com sucesso!`);
+            } catch (error) {
+                alert("Ocorreu um erro durante a baixa no estoque. Verifique o console para detalhes.");
+                console.error("Erro na baixa:", error);
+            } finally {
+                setLoading(false);
+            }
+        }
+    }
+    
     function adicionarEventListenersAjuste() {
         document.querySelectorAll('button[data-btn-ajuste]').forEach(button => {
             button.onclick = (e) => {
