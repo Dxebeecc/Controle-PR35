@@ -6,31 +6,33 @@
     <title>Painel de Controle de Pentes (Online)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: sans-serif; background-color: #f4f4f9; }
-        .card { background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; }
-        .btn { padding: 8px 16px; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; transition: background-color 0.2s; user-select: none; }
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; background-color: #f3f4f6; }
+        .card { background-color: white; border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); padding: 1.25rem; margin-bottom: 1.25rem; }
+        .btn { padding: 0.5rem 1rem; border-radius: 0.5rem; color: white; font-weight: 600; cursor: pointer; transition: background-color 0.2s; user-select: none; }
         .btn:disabled { background-color: #9ca3af; cursor: not-allowed; }
         .btn-primary { background-color: #2563eb; }
         .btn-primary:not(:disabled):hover { background-color: #1d4ed8; }
-        .btn-secondary { background-color: #4b5563; }
-        .btn-secondary:not(:disabled):hover { background-color: #374151; }
-        .loader { border: 4px solid #f3f3f3; border-radius: 50%; border-top: 4px solid #3498db; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
+        .btn-secondary { background-color: #6b7280; }
+        .btn-secondary:not(:disabled):hover { background-color: #4b5563; }
+        select, input[type="number"] { border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.5rem; transition: border-color 0.2s, box-shadow 0.2s; }
+        select:focus, input[type="number"]:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25); outline: none; }
+        .loader { border: 4px solid #e5e7eb; border-radius: 50%; border-top: 4px solid #3b82f6; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="p-6">
+<body class="p-4 md:p-6">
 
-    <div class="max-w-4xl mx-auto">
+    <div class="max-w-2xl mx-auto">
         <div class="card">
             <h1 class="text-2xl font-bold text-gray-800 mb-4">Painel de Controle de Pentes</h1>
             <div id="controles-selecao" class="flex flex-wrap gap-4 items-end">
                 <div>
                     <label for="grupo-pente" class="block text-sm font-medium text-gray-700">1. Selecione o Grupo:</label>
-                    <select id="grupo-pente" class="mt-1"></select>
+                    <select id="grupo-pente" class="mt-1 w-full"></select>
                 </div>
                 <div>
                     <label for="modelo-pente" class="block text-sm font-medium text-gray-700">2. Selecione o Pente:</label>
-                    <select id="modelo-pente" class="mt-1"></select>
+                    <select id="modelo-pente" class="mt-1 w-full"></select>
                 </div>
             </div>
         </div>
@@ -39,8 +41,8 @@
             </div>
 
         <div id="painel-producao" class="card" style="display: none;">
-            <h2 class="text-xl font-bold text-red-600 mb-4">Registrar Produção (Dar Baixa no Estoque)</h2>
-            <div class="flex flex-wrap gap-4 items-center">
+            <h2 class="text-xl font-bold text-red-600 mb-4">Registrar Produção</h2>
+            <div class="space-y-4">
                 <div>
                     <label for="qtde-produzida" class="block text-sm font-medium">Quantidade de Pentes Feitos:</label>
                     <input type="number" id="qtde-produzida" class="mt-1 w-24" min="1" value="1" />
@@ -53,8 +55,8 @@
                         <option value="inferior">Apenas Inferior</option>
                     </select>
                 </div>
-                <div class="self-end">
-                    <button id="btn-dar-baixa" class="btn btn-primary">Concluir e Dar Baixa</button>
+                <div class="pt-2">
+                    <button id="btn-dar-baixa" class="btn btn-primary w-full">Concluir e Dar Baixa no Estoque</button>
                 </div>
             </div>
         </div>
@@ -62,7 +64,6 @@
 
 <script>
     // --- CONFIGURAÇÃO ---
-    // Sua URL já está inserida abaixo!
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxo9PLLniGIK_9Bkc086W6yU51XKfL8FF-D5_tr54gETTerdQ0l01u_r4qAcyViRJIAtA/exec";
 
     // --- VARIÁVEIS GLOBAIS ---
@@ -77,16 +78,16 @@
         "HP": ["HP700", "HP1100"]
     };
 
+    // --- ELEMENTOS DO DOM ---
     const grupoSelect = document.getElementById('grupo-pente');
     const modeloSelect = document.getElementById('modelo-pente');
     const detalhesPanel = document.getElementById('painel-detalhes');
     const producaoPanel = document.getElementById('painel-producao');
     const darBaixaBtn = document.getElementById('btn-dar-baixa');
-    const controlesSelecao = document.getElementById('controles-selecao');
 
+    // --- FUNÇÕES PRINCIPAIS ---
     function setLoading(isLoading) {
-        darBaixaBtn.disabled = isLoading;
-        document.querySelectorAll('#controles-selecao select, #painel-producao select, #painel-producao input, #painel-producao button').forEach(el => el.disabled = isLoading);
+        document.querySelectorAll('button, select, input').forEach(el => el.disabled = isLoading);
         detalhesPanel.style.opacity = isLoading ? 0.5 : 1;
     }
 
@@ -126,7 +127,7 @@
         }
         producaoPanel.style.display = 'block';
         const receita = receitas[modelo];
-        let html = `<h2 class="text-xl font-bold text-red-600 text-center mb-4">Pente da ${modelo}</h2>`;
+        let html = `<h2 class="text-xl font-bold text-gray-700 text-center mb-4">Componentes do Pente ${modelo}</h2>`;
         html += renderizarParte('INFERIOR', receita.inferior);
         html += renderizarParte('SUPERIOR', receita.superior);
         detalhesPanel.innerHTML = html;
@@ -134,20 +135,28 @@
     }
 
     function renderizarParte(nomeParte, receitaParte) {
-        let parteHtml = `<div class="card"><h3 class="text-lg font-bold text-blue-700 mb-2">${nomeParte}</h3><table class="w-full"><thead><tr class="text-left"><th class="py-2">Matéria-Prima</th><th>Estoque</th><th>Código</th><th>Tamanho</th><th>Ajuste Manual</th></tr></thead><tbody>`;
+        let parteHtml = `<div class="card"><h3 class="text-lg font-semibold text-blue-700 mb-4">${nomeParte}</h3><div class="space-y-4">`;
         for (const cod in receitaParte) {
-            parteHtml += `<tr class="border-t">
-                <td class="py-2 font-medium">${materiaPrima[cod]?.nome || 'N/A'}</td>
-                <td class="font-bold text-lg">${estoque[cod] ?? 'N/A'}</td>
-                <td>${cod}</td>
-                <td>${materiaPrima[cod]?.tamanho || 'N/A'}</td>
-                <td>
-                    <input type="number" class="w-20" data-cod-ajuste="${cod}" placeholder="+/-" />
-                    <button class="btn btn-secondary text-sm ml-2" data-btn-ajuste="${cod}">OK</button>
-                </td>
-            </tr>`;
+            parteHtml += `
+                <div class="p-3 border rounded-lg">
+                    <p class="font-bold text-gray-800">${materiaPrima[cod]?.nome || 'N/A'}</p>
+                    <div class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                        <div>
+                            <span class="text-gray-500">Estoque:</span>
+                            <span class="font-bold text-lg text-blue-600">${estoque[cod] ?? 'N/A'}</span>
+                        </div>
+                        <div><span class="text-gray-500">Código:</span> ${cod}</div>
+                        <div><span class="text-gray-500">Tamanho:</span> ${materiaPrima[cod]?.tamanho || 'N/A'}</div>
+                    </div>
+                    <div class="mt-3 pt-3 border-t flex items-center gap-2">
+                        <label class="text-sm text-gray-600">Ajuste Manual:</label>
+                        <input type="number" class="w-20 p-1" data-cod-ajuste="${cod}" placeholder="+/-" />
+                        <button class="btn btn-secondary text-xs py-1 px-2" data-btn-ajuste="${cod}">OK</button>
+                    </div>
+                </div>
+            `;
         }
-        return parteHtml + `</tbody></table></div>`;
+        return parteHtml + `</div></div>`;
     }
 
     async function handleAjusteManual(cod, quantidade) {
@@ -165,9 +174,7 @@
             if (result.status === 'success') {
                 estoque[cod] = result.newStock;
                 renderizarDetalhes(modeloSelect.value);
-            } else {
-                throw new Error(result.message);
-            }
+            } else { throw new Error(result.message); }
         } catch (error) {
             alert(`Erro ao salvar na planilha: ${error.message}`);
         } finally {
@@ -179,15 +186,9 @@
         const modelo = modeloSelect.value;
         const qtdeProduzida = parseInt(document.getElementById('qtde-produzida').value);
         const parte = document.getElementById('parte-produzida').value;
-
-        if (qtdeProduzida <= 0) {
-            alert("Por favor, insira uma quantidade válida.");
-            return;
-        }
-
+        if (qtdeProduzida <= 0) { alert("Insira uma quantidade válida."); return; }
         const receitaCompleta = receitas[modelo];
         let itemsParaBaixa = [];
-        
         const adicionarNaLista = (receitaParte) => {
             for (const cod in receitaParte) {
                 const qtdeConsumida = receitaParte[cod] * qtdeProduzida;
@@ -199,43 +200,19 @@
             }
             return true;
         };
-        
-        if (parte === 'superior' || parte === 'par') {
-            if (!adicionarNaLista(receitaCompleta.superior)) return;
-        }
-        if (parte === 'inferior' || parte === 'par') {
-            if (!adicionarNaLista(receitaCompleta.inferior)) return;
-        }
-        
+        if (parte === 'superior' || parte === 'par') { if (!adicionarNaLista(receitaCompleta.superior)) return; }
+        if (parte === 'inferior' || parte === 'par') { if (!adicionarNaLista(receitaCompleta.inferior)) return; }
         if (itemsParaBaixa.length > 0) {
             setLoading(true);
-            // Promise.all executa todas as requisições de baixa em paralelo
-            const promises = itemsParaBaixa.map(item => {
-                const url = new URL(SCRIPT_URL);
-                url.searchParams.append('action', 'updateStock');
-                url.searchParams.append('cod', item.cod);
-                url.searchParams.append('qtde', item.qtde);
-                return fetch(url).then(res => res.json());
-            });
-
+            const promises = itemsParaBaixa.map(item => handleAjusteManual(item.cod, item.qtde));
             try {
-                const results = await Promise.all(promises);
-                // Atualiza o estoque local com os resultados do servidor
-                results.forEach((result, index) => {
-                    if (result.status === 'success') {
-                        const cod = itemsParaBaixa[index].cod;
-                        estoque[cod] = result.newStock;
-                    } else {
-                        console.error("Falha ao atualizar o item:", itemsParaBaixa[index].cod);
-                    }
-                });
-                renderizarDetalhes(modeloSelect.value);
+                await Promise.all(promises);
                 alert(`Baixa de ${qtdeProduzida} pente(s) ${modelo} (${parte}) realizada com sucesso!`);
             } catch (error) {
-                alert("Ocorreu um erro durante a baixa no estoque. Verifique o console para detalhes.");
-                console.error("Erro na baixa:", error);
+                alert("Ocorreu um erro durante a baixa. O estoque pode não ter sido atualizado corretamente.");
             } finally {
                 setLoading(false);
+                carregarDadosIniciais(); // Recarrega os dados para garantir consistência
             }
         }
     }
@@ -256,8 +233,9 @@
         popularModelos(grupoSelect.value);
         renderizarDetalhes(modeloSelect.value);
         grupoSelect.addEventListener('change', e => { popularModelos(e.target.value); renderizarDetalhes(modeloSelect.value); });
-        modeloSelect.addEventListener('change', e => { renderizarDetalhes(e.target.value); });
+        modeloSelect.addEventListener('change', e => renderizarDetalhes(e.target.value));
         darBaixaBtn.addEventListener('click', handleDarBaixa);
+        setLoading(false);
     }
     
     function popularGrupos() { Object.keys(pentes).forEach(g => grupoSelect.add(new Option(g, g))); }
