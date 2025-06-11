@@ -7,8 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; background-color: #f3f4f6; }
-        .card { background-color: white; border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); padding: 1.25rem; margin-bottom: 1.25rem; }
-        .btn { padding: 0.5rem 1rem; border-radius: 0.5rem; color: white; font-weight: 600; cursor: pointer; transition: background-color 0.2s; user-select: none; }
+        .card { background-color: white; border-radius: 0.75rem; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1); padding: 1.5rem; margin-bottom: 1.5rem; }
+        .btn { padding: 0.625rem 1.25rem; border-radius: 0.5rem; color: white; font-weight: 600; cursor: pointer; transition: background-color 0.2s; user-select: none; }
         .btn:disabled { background-color: #9ca3af; cursor: not-allowed; }
         .btn-primary { background-color: #2563eb; }
         .btn-primary:not(:disabled):hover { background-color: #1d4ed8; }
@@ -25,7 +25,7 @@
     <div class="max-w-2xl mx-auto">
         <div class="card">
             <h1 class="text-2xl font-bold text-gray-800 mb-4">Painel de Controle de Pentes</h1>
-            <div id="controles-selecao" class="flex flex-wrap gap-4 items-end">
+            <div id="controles-selecao" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label for="grupo-pente" class="block text-sm font-medium text-gray-700">1. Selecione o Grupo:</label>
                     <select id="grupo-pente" class="mt-1 w-full"></select>
@@ -41,14 +41,14 @@
             </div>
 
         <div id="painel-producao" class="card" style="display: none;">
-            <h2 class="text-xl font-bold text-red-600 mb-4">Registrar Produção</h2>
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Registrar Produção</h2>
             <div class="space-y-4">
                 <div>
-                    <label for="qtde-produzida" class="block text-sm font-medium">Quantidade de Pentes Feitos:</label>
+                    <label for="qtde-produzida" class="block text-sm font-medium text-gray-700">Quantidade de Pentes Feitos:</label>
                     <input type="number" id="qtde-produzida" class="mt-1 w-24" min="1" value="1" />
                 </div>
                 <div>
-                    <label for="parte-produzida" class="block text-sm font-medium">Qual parte foi feita?</label>
+                    <label for="parte-produzida" class="block text-sm font-medium text-gray-700">Qual parte foi feita?</label>
                     <select id="parte-produzida" class="mt-1">
                         <option value="par">O Par Completo</option>
                         <option value="superior">Apenas Superior</option>
@@ -127,7 +127,7 @@
         }
         producaoPanel.style.display = 'block';
         const receita = receitas[modelo];
-        let html = `<h2 class="text-xl font-bold text-gray-700 text-center mb-4">Componentes do Pente ${modelo}</h2>`;
+        let html = `<h2 class="text-xl font-semibold text-gray-700 text-center mb-4">Componentes do Pente ${modelo}</h2>`;
         html += renderizarParte('INFERIOR', receita.inferior);
         html += renderizarParte('SUPERIOR', receita.superior);
         detalhesPanel.innerHTML = html;
@@ -135,23 +135,23 @@
     }
 
     function renderizarParte(nomeParte, receitaParte) {
-        let parteHtml = `<div class="card"><h3 class="text-lg font-semibold text-blue-700 mb-4">${nomeParte}</h3><div class="space-y-4">`;
+        let parteHtml = `<div class="mb-6"><h3 class="text-lg font-bold text-blue-600 mb-3 pb-2 border-b">${nomeParte}</h3><div class="space-y-4">`;
         for (const cod in receitaParte) {
             parteHtml += `
-                <div class="p-3 border rounded-lg">
-                    <p class="font-bold text-gray-800">${materiaPrima[cod]?.nome || 'N/A'}</p>
-                    <div class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                <div class="p-4 border rounded-lg bg-gray-50 shadow-sm">
+                    <p class="font-bold text-lg text-gray-800">${materiaPrima[cod]?.nome || 'N/A'}</p>
+                    <div class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                         <div>
                             <span class="text-gray-500">Estoque:</span>
-                            <span class="font-bold text-lg text-blue-600">${estoque[cod] ?? 'N/A'}</span>
+                            <span class="font-semibold text-base text-blue-700 ml-1">${estoque[cod] ?? 'N/A'}</span>
                         </div>
-                        <div><span class="text-gray-500">Código:</span> ${cod}</div>
-                        <div><span class="text-gray-500">Tamanho:</span> ${materiaPrima[cod]?.tamanho || 'N/A'}</div>
+                        <div><span class="text-gray-500">Código:</span> <span class="font-mono text-gray-700">${cod}</span></div>
+                        <div><span class="text-gray-500">Tamanho:</span> <span class="font-semibold text-gray-700">${materiaPrima[cod]?.tamanho || 'N/A'}</span></div>
                     </div>
-                    <div class="mt-3 pt-3 border-t flex items-center gap-2">
-                        <label class="text-sm text-gray-600">Ajuste Manual:</label>
-                        <input type="number" class="w-20 p-1" data-cod-ajuste="${cod}" placeholder="+/-" />
-                        <button class="btn btn-secondary text-xs py-1 px-2" data-btn-ajuste="${cod}">OK</button>
+                    <div class="mt-4 pt-4 border-t border-gray-200 flex items-center gap-2">
+                        <label class="text-sm font-medium text-gray-600">Ajuste Manual:</label>
+                        <input type="number" class="w-20 p-2 text-sm" data-cod-ajuste="${cod}" placeholder="+/-" />
+                        <button class="btn btn-secondary text-xs py-2 px-3" data-btn-ajuste="${cod}">OK</button>
                     </div>
                 </div>
             `;
@@ -166,19 +166,20 @@
         url.searchParams.append('action', 'updateStock');
         url.searchParams.append('cod', cod);
         url.searchParams.append('qtde', quantidade);
-
         try {
             const response = await fetch(url);
             if (!response.ok) throw new Error('Falha na resposta do servidor.');
             const result = await response.json();
             if (result.status === 'success') {
                 estoque[cod] = result.newStock;
-                renderizarDetalhes(modeloSelect.value);
             } else { throw new Error(result.message); }
         } catch (error) {
             alert(`Erro ao salvar na planilha: ${error.message}`);
+            // Recarregar os dados para garantir que a interface reflita a realidade da planilha
+            await carregarDadosIniciais();
         } finally {
             setLoading(false);
+            renderizarDetalhes(modeloSelect.value);
         }
     }
 
@@ -204,15 +205,21 @@
         if (parte === 'inferior' || parte === 'par') { if (!adicionarNaLista(receitaCompleta.inferior)) return; }
         if (itemsParaBaixa.length > 0) {
             setLoading(true);
-            const promises = itemsParaBaixa.map(item => handleAjusteManual(item.cod, item.qtde));
+            const promises = itemsParaBaixa.map(item => {
+                const url = new URL(SCRIPT_URL);
+                url.searchParams.append('action', 'updateStock');
+                url.searchParams.append('cod', item.cod);
+                url.searchParams.append('qtde', item.qtde);
+                return fetch(url).then(res => res.json());
+            });
             try {
                 await Promise.all(promises);
                 alert(`Baixa de ${qtdeProduzida} pente(s) ${modelo} (${parte}) realizada com sucesso!`);
             } catch (error) {
                 alert("Ocorreu um erro durante a baixa. O estoque pode não ter sido atualizado corretamente.");
             } finally {
+                await carregarDadosIniciais();
                 setLoading(false);
-                carregarDadosIniciais(); // Recarrega os dados para garantir consistência
             }
         }
     }
