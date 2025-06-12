@@ -88,7 +88,6 @@
             inicializarPainel();
         } catch (error) {
             detalhesPanel.innerHTML = `<div class="card text-center text-red-500"><strong>Erro ao carregar dados.</strong><br>Verifique as permissões da planilha e a URL do script.</div>`;
-            console.error("Erro:", error);
         } finally {
             setLoading(false);
         }
@@ -105,7 +104,7 @@
             receitas[item.modelo_pente][item.parte.toLowerCase()][item.cod_materia_prima] = Number(item.qtde_usada);
         });
     }
-
+    
     function renderizarDetalhes(modelo) {
         if (!receitas[modelo]) {
             detalhesPanel.innerHTML = `<div class="card text-center text-gray-500">Receita para o modelo <strong>${modelo}</strong> ainda não cadastrada.</div>`;
@@ -139,16 +138,20 @@
         return parteHtml + `</div></div>`;
     }
 
+    async function fetchComPost(data) {
+        return fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(data)
+        }).then(res => res.json());
+    }
+
     async function handleAjusteManual(cod, quantidade) {
         if (!quantidade || isNaN(quantidade)) return;
         setLoading(true);
-        const url = new URL(SCRIPT_URL);
-        url.searchParams.append('action', 'updateStock');
-        url.searchParams.append('cod', cod);
-        url.searchParams.append('qtde', quantidade);
         try {
-            const response = await fetch(url);
-            const result = await response.json();
+            const result = await fetchComPost({ action: 'updateStock', cod: cod, qtde: quantidade });
             if (result.status === 'success') {
                 estoque[cod] = result.newStock;
                 renderizarDetalhes(modeloSelect.value);
@@ -167,12 +170,10 @@
         let itemsParaBaixa = [];
         const adicionarNaLista = (receitaParte) => {
             for (const cod in receitaParte) {
-                const qtdeConsumida = receitaParte[cod] * qtdeProduzida;
-                if (estoque[cod] < qtdeConsumida) {
-                    alert(`Estoque insuficiente de ${materiaPrima[cod].nome}! Necessário: ${qtdeConsumida}, Disponível: ${estoque[cod]}.`);
-                    return false;
+                if (!estoque[cod] || estoque[cod] < (receitaParte[cod] * qtdeProduzida)) {
+                    alert(`Estoque insuficiente de ${materiaPrima[cod]?.nome}!`); return false;
                 }
-                itemsParaBaixa.push({ cod: cod, qtde: -qtdeConsumida });
+                itemsParaBaixa.push({ cod: cod, qtde: - (receitaParte[cod] * qtdeProduzida) });
             }
             return true;
         };
@@ -180,12 +181,8 @@
         if (parte === 'inferior' || parte === 'par') { if (!adicionarNaLista(receitaCompleta.inferior)) return; }
         if (itemsParaBaixa.length > 0) {
             setLoading(true);
-            const url = new URL(SCRIPT_URL);
-            url.searchParams.append('action', 'darBaixa');
-            url.searchParams.append('items', JSON.stringify(itemsParaBaixa));
             try {
-                const response = await fetch(url);
-                const result = await response.json();
+                const result = await fetchComPost({ action: 'darBaixa', items: itemsParaBaixa });
                 if (result.status !== 'success') throw new Error(result.message);
                 alert(`Baixa de ${qtdeProduzida} pente(s) ${modelo} (${parte}) realizada com sucesso!`);
             } catch (error) {
