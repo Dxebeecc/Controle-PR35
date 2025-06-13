@@ -97,14 +97,21 @@
 
     function processarDados(data) {
         materiaPrima = {}; estoque = {}; receitas = {};
-        data.estoque.forEach(item => {
-            materiaPrima[item.cod_materia_prima] = { nome: item.nome_peca, tamanho: item.tamanho };
-            estoque[item.cod_materia_prima] = Number(item.estoque_atual);
-        });
-        data.receitas.forEach(item => {
-            if (!receitas[item.modelo_pente]) receitas[item.modelo_pente] = { superior: {}, inferior: {} };
-            receitas[item.modelo_pente][item.parte.toLowerCase()][item.cod_materia_prima] = Number(item.qtde_usada);
-        });
+        if (data.estoque) {
+            data.estoque.forEach(item => {
+                materiaPrima[item.cod_materia_prima] = { nome: item.nome_peca, tamanho: item.tamanho };
+                estoque[item.cod_materia_prima] = Number(item.estoque_atual);
+            });
+        }
+        if (data.receitas) {
+            data.receitas.forEach(item => {
+                if (!receitas[item.modelo_pente]) receitas[item.modelo_pente] = { superior: {}, inferior: {} };
+                const parte = item.parte ? item.parte.toLowerCase() : '';
+                if(parte && item.cod_materia_prima && item.qtde_usada) {
+                    receitas[item.modelo_pente][parte][item.cod_materia_prima] = Number(item.qtde_usada);
+                }
+            });
+        }
     }
     
     function renderizarDetalhes(modelo) {
@@ -123,19 +130,23 @@
 
     function renderizarParte(nomeParte, receitaParte) {
         let parteHtml = `<div class="mb-6"><h3 class="text-lg font-bold text-blue-600 mb-3 pb-2 border-b">${nomeParte}</h3><div class="space-y-4">`;
-        for (const cod in receitaParte) {
-            parteHtml += `<div class="p-4 border rounded-lg bg-gray-50 shadow-sm">
-                <p class="font-bold text-lg text-gray-800">${materiaPrima[cod]?.nome || 'N/A'}</p>
-                <div class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                    <div><span class="text-gray-500">Estoque:</span><span class="font-semibold text-base text-blue-700 ml-1">${estoque[cod] ?? 'N/A'}</span></div>
-                    <div><span class="text-gray-500">Código:</span> <span class="font-mono text-gray-700">${cod}</span></div>
-                    <div><span class="text-gray-500">Tamanho:</span> <span class="font-semibold text-gray-700">${materiaPrima[cod]?.tamanho || 'N/A'}</span></div>
-                </div>
-                <div class="mt-4 pt-4 border-t border-gray-200 flex items-center gap-2">
-                    <label class="text-sm font-medium text-gray-600">Ajuste Manual:</label>
-                    <input type="number" class="w-20 p-2 text-sm" data-cod-ajuste="${cod}" placeholder="+/-" />
-                    <button class="btn btn-secondary text-xs py-2 px-3" data-btn-ajuste="${cod}">OK</button>
-                </div></div>`;
+        if (Object.keys(receitaParte).length === 0) {
+            parteHtml += `<div class="p-4 text-center text-sm text-gray-500">Receita para a parte ${nomeParte.toLowerCase()} não cadastrada.</div>`;
+        } else {
+            for (const cod in receitaParte) {
+                parteHtml += `<div class="p-4 border rounded-lg bg-gray-50 shadow-sm">
+                    <p class="font-bold text-lg text-gray-800">${materiaPrima[cod]?.nome || 'Peça não encontrada no estoque'}</p>
+                    <div class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                        <div><span class="text-gray-500">Estoque:</span><span class="font-semibold text-base text-blue-700 ml-1">${estoque[cod] ?? 'N/A'}</span></div>
+                        <div><span class="text-gray-500">Código:</span> <span class="font-mono text-gray-700">${cod}</span></div>
+                        <div><span class="text-gray-500">Tamanho:</span> <span class="font-semibold text-gray-700">${materiaPrima[cod]?.tamanho || 'N/A'}</span></div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-gray-200 flex items-center gap-2">
+                        <label class="text-sm font-medium text-gray-600">Ajuste Manual:</label>
+                        <input type="number" class="w-20 p-2 text-sm" data-cod-ajuste="${cod}" placeholder="+/-" />
+                        <button class="btn btn-secondary text-xs py-2 px-3" data-btn-ajuste="${cod}">OK</button>
+                    </div></div>`;
+            }
         }
         return parteHtml + `</div></div>`;
     }
@@ -144,7 +155,7 @@
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'cors',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // workaround for Apps Script CORS
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(data)
         });
         if (!response.ok) throw new Error('Falha de rede ao se comunicar com a planilha.');
@@ -157,13 +168,11 @@
         try {
             const result = await fetchComPost({ action: 'updateStock', cod: cod, qtde: quantidade });
             if (result.status !== 'success') throw new Error(result.message);
-            // Atualiza o estoque local para a interface ser rápida, mas recarregaremos no final.
             estoque[cod] = result.newStock;
         } catch (error) {
-            // Se falhar, joga o erro para a função que o chamou lidar
             throw error;
         } finally {
-            // Não desabilita o loading aqui, a função que chamou fará isso.
+            setLoading(false);
         }
     }
 
@@ -174,8 +183,17 @@
         
         const receitaCompleta = receitas[modelo];
         let itemsParaBaixa = [];
-        const adicionarNaLista = (receitaParte) => {
+        
+        const adicionarNaLista = (receitaParte, nomeDaParte) => {
+            if (!receitaParte || Object.keys(receitaParte).length === 0) {
+                alert(`A receita para a parte "${nomeDaParte}" não está cadastrada ou está incompleta na planilha.`);
+                return false;
+            }
             for (const cod in receitaParte) {
+                if (estoque[cod] === undefined) {
+                    alert(`Erro: A matéria-prima com o código "${cod}", listada na receita, não foi encontrada na sua aba de Estoque.`);
+                    return false;
+                }
                 const qtdeConsumida = receitaParte[cod] * qtdeProduzida;
                 if (estoque[cod] < qtdeConsumida) {
                     alert(`Estoque insuficiente de ${materiaPrima[cod]?.nome}! Necessário: ${qtdeConsumida}, Disponível: ${estoque[cod]}.`);
@@ -186,22 +204,20 @@
             return true;
         };
         
-        if (parte === 'superior' || parte === 'par') { if (!adicionarNaLista(receitaCompleta.superior)) return; }
-        if (parte === 'inferior' || parte === 'par') { if (!adicionarNaLista(receitaCompleta.inferior)) return; }
+        if (parte === 'superior' || parte === 'par') { if (!adicionarNaLista(receitaCompleta.superior, 'Superior')) return; }
+        if (parte === 'inferior' || parte === 'par') { if (!adicionarNaLista(receitaCompleta.inferior, 'Inferior')) return; }
         
         if (itemsParaBaixa.length > 0) {
             setLoading(true, 'Dando baixa no estoque...');
             try {
-                // *** A GRANDE MUDANÇA ESTÁ AQUI: O LOOP SEQUENCIAL ***
+                // *** Lógica sequencial que usa a função de ajuste manual ***
                 for (const item of itemsParaBaixa) {
-                    // Espera cada ajuste manual ser completado antes de ir para o próximo
                     await handleAjusteManual(item.cod, item.qtde);
                 }
                 alert(`Baixa de ${qtdeProduzida} pente(s) ${modelo} (${parte}) realizada com sucesso!`);
             } catch (error) {
                 alert(`Erro ao dar baixa: ${error.message}`);
             } finally {
-                // Ao final de tudo, recarrega os dados da planilha para garantir 100% de consistência
                 await carregarDadosIniciais();
                 setLoading(false);
             }
@@ -215,10 +231,14 @@
                 const input = document.querySelector(`input[data-cod-ajuste="${cod}"]`);
                 const quantidade = parseInt(input.value);
                 input.value = '';
-                await handleAjusteManual(cod, quantidade);
-                // Recarrega tudo para garantir que a interface está sincronizada
-                await carregarDadosIniciais();
-                setLoading(false);
+                try {
+                    await handleAjusteManual(cod, quantidade);
+                    await carregarDadosIniciais();
+                } catch (error) {
+                    alert(`Erro no ajuste manual: ${error.message}`);
+                } finally {
+                    setLoading(false);
+                }
             };
         });
     }
