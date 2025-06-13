@@ -99,16 +99,22 @@
         materiaPrima = {}; estoque = {}; receitas = {};
         if (data.estoque) {
             data.estoque.forEach(item => {
-                materiaPrima[item.cod_materia_prima] = { nome: item.nome_peca, tamanho: item.tamanho };
-                estoque[item.cod_materia_prima] = Number(item.estoque_atual);
+                const cod = item.cod_materia_prima.trim();
+                materiaPrima[cod] = { nome: item.nome_peca.trim(), tamanho: item.tamanho };
+                estoque[cod] = Number(item.estoque_atual);
             });
         }
         if (data.receitas) {
             data.receitas.forEach(item => {
-                if (!receitas[item.modelo_pente]) receitas[item.modelo_pente] = { superior: {}, inferior: {} };
-                const parte = item.parte ? item.parte.toLowerCase() : '';
-                if(parte && item.cod_materia_prima && item.qtde_usada) {
-                    receitas[item.modelo_pente][parte][item.cod_materia_prima] = Number(item.qtde_usada);
+                const modelo = item.modelo_pente.trim();
+                if (!receitas[modelo]) receitas[modelo] = { superior: {}, inferior: {} };
+                
+                const parte = item.parte ? item.parte.trim().toLowerCase() : '';
+                const cod = item.cod_materia_prima ? item.cod_materia_prima.trim() : '';
+                const qtde = item.qtde_usada;
+
+                if(parte && cod && (qtde || qtde === 0)) {
+                    receitas[modelo][parte][cod] = Number(qtde);
                 }
             });
         }
@@ -151,6 +157,17 @@
         return parteHtml + `</div></div>`;
     }
 
+    async function fetchComPost(data) {
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(data)
+        });
+        if (!response.ok) throw new Error('Falha de rede ao se comunicar com a planilha.');
+        return response.json();
+    }
+
     async function processarTransacao(items, successMessage) {
         setLoading(true, 'Processando transação...');
         try {
@@ -160,7 +177,7 @@
         } catch (error) {
             alert(`Erro: ${error.message}`);
         } finally {
-            await carregarDadosIniciais(); // Sempre recarrega os dados para garantir consistência
+            await carregarDadosIniciais();
         }
     }
 
