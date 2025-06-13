@@ -84,9 +84,9 @@
         try {
             const response = await fetch(`${SCRIPT_URL}?action=getData`);
             if (!response.ok) throw new Error('Erro de rede ou permissão negada.');
-            const data = await response.json();
-            if (data.status === 'error') throw new Error(data.message);
-            processarDados(data);
+            const result = await response.json();
+            if (result.status === 'error') throw new Error(result.message);
+            processarDados(result.data);
             inicializarPainel();
         } catch (error) {
             detalhesPanel.innerHTML = `<div class="card text-center text-red-500"><strong>Erro ao carregar dados.</strong><br>${error.message}</div>`;
@@ -151,31 +151,26 @@
         return parteHtml + `</div></div>`;
     }
 
-    async function fetchComPost(data) {
-        const response = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'cors',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(data)
-        });
-        if (!response.ok) throw new Error('Falha de rede ao se comunicar com a planilha.');
-        return response.json();
+    async function processarTransacao(items, successMessage) {
+        setLoading(true, 'Processando transação...');
+        try {
+            const result = await fetchComPost({ action: 'processarTransacao', items: items });
+            if (result.status !== 'success') throw new Error(result.message);
+            alert(successMessage);
+        } catch (error) {
+            alert(`Erro: ${error.message}`);
+        } finally {
+            await carregarDadosIniciais(); // Sempre recarrega os dados para garantir consistência
+        }
     }
 
     async function handleAjusteManual(cod, quantidade) {
         if (!quantidade || isNaN(quantidade)) return;
-        setLoading(true, `Ajustando estoque de ${cod}...`);
-        try {
-            const result = await fetchComPost({ action: 'updateStock', cod: cod, qtde: quantidade });
-            if (result.status !== 'success') throw new Error(result.message);
-            estoque[cod] = result.newStock;
-        } catch (error) {
-            throw error;
-        } finally {
-            setLoading(false);
-        }
+        const items = [{ cod: cod, qtde: quantidade }];
+        const successMessage = `Estoque de ${materiaPrima[cod]?.nome} ajustado em ${quantidade}.`;
+        await processarTransacao(items, successMessage);
     }
-
+    
     async function handleDarBaixa() {
         const modelo = modeloSelect.value, qtdeProduzida = parseInt(document.getElementById('qtde-produzida').value),
               parte = document.getElementById('parte-produzida').value;
@@ -183,21 +178,17 @@
         
         const receitaCompleta = receitas[modelo];
         let itemsParaBaixa = [];
-        
         const adicionarNaLista = (receitaParte, nomeDaParte) => {
             if (!receitaParte || Object.keys(receitaParte).length === 0) {
-                alert(`A receita para a parte "${nomeDaParte}" não está cadastrada ou está incompleta na planilha.`);
-                return false;
+                alert(`A receita para a parte "${nomeDaParte}" não está cadastrada ou está incompleta na planilha.`); return false;
             }
             for (const cod in receitaParte) {
                 if (estoque[cod] === undefined) {
-                    alert(`Erro: A matéria-prima com o código "${cod}", listada na receita, não foi encontrada na sua aba de Estoque.`);
-                    return false;
+                    alert(`Erro: A matéria-prima "${cod}", da receita, não foi encontrada na sua aba de Estoque.`); return false;
                 }
                 const qtdeConsumida = receitaParte[cod] * qtdeProduzida;
                 if (estoque[cod] < qtdeConsumida) {
-                    alert(`Estoque insuficiente de ${materiaPrima[cod]?.nome}! Necessário: ${qtdeConsumida}, Disponível: ${estoque[cod]}.`);
-                    return false;
+                    alert(`Estoque insuficiente de ${materiaPrima[cod]?.nome}! Necessário: ${qtdeConsumida}, Disponível: ${estoque[cod]}.`); return false;
                 }
                 itemsParaBaixa.push({ cod: cod, qtde: -qtdeConsumida });
             }
@@ -208,19 +199,8 @@
         if (parte === 'inferior' || parte === 'par') { if (!adicionarNaLista(receitaCompleta.inferior, 'Inferior')) return; }
         
         if (itemsParaBaixa.length > 0) {
-            setLoading(true, 'Dando baixa no estoque...');
-            try {
-                // *** Lógica sequencial que usa a função de ajuste manual ***
-                for (const item of itemsParaBaixa) {
-                    await handleAjusteManual(item.cod, item.qtde);
-                }
-                alert(`Baixa de ${qtdeProduzida} pente(s) ${modelo} (${parte}) realizada com sucesso!`);
-            } catch (error) {
-                alert(`Erro ao dar baixa: ${error.message}`);
-            } finally {
-                await carregarDadosIniciais();
-                setLoading(false);
-            }
+            const successMessage = `Baixa de ${qtdeProduzida} pente(s) ${modelo} (${parte}) realizada com sucesso!`;
+            await processarTransacao(itemsParaBaixa, successMessage);
         }
     }
     
@@ -229,16 +209,7 @@
             button.onclick = async e => {
                 const cod = e.target.getAttribute('data-btn-ajuste');
                 const input = document.querySelector(`input[data-cod-ajuste="${cod}"]`);
-                const quantidade = parseInt(input.value);
-                input.value = '';
-                try {
-                    await handleAjusteManual(cod, quantidade);
-                    await carregarDadosIniciais();
-                } catch (error) {
-                    alert(`Erro no ajuste manual: ${error.message}`);
-                } finally {
-                    setLoading(false);
-                }
+                await handleAjusteManual(cod, parseInt(input.value));
             };
         });
     }
