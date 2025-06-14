@@ -6,8 +6,8 @@
     <title>Painel de Controle de Pentes (Online)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: system-ui, sans-serif; background-color: #f3f4f6; }
-        .card { background-color: white; border-radius: 0.75rem; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1); padding: 1.5rem; margin-bottom: 1.5rem; }
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; background-color: #f3f4f6; }
+        .card { background-color: white; border-radius: 0.75rem; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1); padding: 1.5rem; margin-bottom: 1.5rem; }
         .btn { padding: 0.625rem 1.25rem; border-radius: 0.5rem; color: white; font-weight: 600; cursor: pointer; transition: background-color 0.2s; user-select: none; }
         .btn:disabled { background-color: #9ca3af; }
         .btn-primary { background-color: #2563eb; }
@@ -49,7 +49,6 @@
     </div>
 
 <script>
-    // O SCRIPT JAVASCRIPT CONTINUA O MESMO, APENAS COM UMA PEQUENA ADIÇÃO PARA O MODO DE DEPURACÃO
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxo9PLLniGIK_9Bkc086W6yU51XKfL8FF-D5_tr54gETTerdQ0l01u_r4qAcyViRJIAtA/exec";
     let materiaPrima = {}, estoque = {}, receitas = {};
     const pentes = { "SC Convencional": ["SC700C", "SC850C", "SC1100C", "SC1400C"], "SC Reforçada": ["SC700REF", "SC850REF"], "SCW": ["SCW"], "HSC": ["HSC850", "HSC1100", "HSC1400"], "HP": ["HP700", "HP1100"] };
@@ -57,8 +56,6 @@
           detalhesPanel = document.getElementById('painel-detalhes'), producaoPanel = document.getElementById('painel-producao'),
           debugModeCheckbox = document.getElementById('debug-mode'), debugOutputContainer = document.getElementById('debug-output-container'),
           debugOutput = document.getElementById('debug-output');
-
-    // ... (todas as outras funções como setLoading, renderizarDetalhes, handleDarBaixa, etc. permanecem as mesmas da versão anterior)
 
     function setLoading(isLoading, message = '') {
         document.querySelectorAll('button, select, input').forEach(el => el.disabled = isLoading);
@@ -76,7 +73,6 @@
             const result = await response.json();
             if (result.status === 'error') throw new Error(result.message);
             
-            // --- MODO DE DEPURACÃO ---
             if (debugModeCheckbox.checked) {
                 debugOutput.textContent = JSON.stringify(result.data, null, 2);
                 debugOutputContainer.style.display = 'block';
@@ -93,24 +89,27 @@
     
     function processarDados(data) {
         materiaPrima = {}; estoque = {}; receitas = {};
+        // Função de limpeza de texto robusta
+        const cleanString = (str) => String(str || '').replace(/^\s+|\s+$/g, '');
+
         if (data.estoque) {
             data.estoque.forEach(item => {
-                const cod = String(item.cod_materia_prima || '').trim();
+                const cod = cleanString(item.cod_materia_prima);
                 if(cod) {
-                    materiaPrima[cod] = { nome: String(item.nome_peca || '').trim(), tamanho: item.tamanho };
+                    materiaPrima[cod] = { nome: cleanString(item.nome_peca), tamanho: item.tamanho };
                     estoque[cod] = Number(item.estoque_atual);
                 }
             });
         }
         if (data.receitas) {
             data.receitas.forEach(item => {
-                const modelo = String(item.modelo_pente || '').trim();
+                const modelo = cleanString(item.modelo_pente);
                 if (!modelo) return;
 
                 if (!receitas[modelo]) receitas[modelo] = { superior: {}, inferior: {} };
                 
-                const parte = item.parte ? String(item.parte).trim().toLowerCase() : '';
-                const cod = item.cod_materia_prima ? String(item.cod_materia_prima).trim() : '';
+                const parte = cleanString(item.parte).toLowerCase();
+                const cod = cleanString(item.cod_materia_prima);
                 const qtde = item.qtde_usada;
 
                 if(parte && cod && (qtde || qtde === 0)) {
@@ -120,54 +119,22 @@
         }
     }
     
-    // Todas as outras funções (renderizarDetalhes, handleDarBaixa, etc.) continuam aqui...
-    function renderizarDetalhes(modelo) {
-        // ...código da função...
-    }
-    function renderizarParte(nomeParte, receitaParte) {
-        // ...código da função...
-    }
-    async function fetchComPost(data) {
-        // ...código da função...
-    }
-    async function processarTransacao(items, successMessage) {
-        // ...código da função...
-    }
-    async function handleAjusteManual(cod, quantidade) {
-        // ...código da função...
-    }
-    async function handleDarBaixa() {
-        // ...código da função...
-    }
-    function adicionarEventListenersAjuste() {
-        // ...código da função...
-    }
-    function inicializarPainel() {
-        // ...código da função...
-    }
-    function popularGrupos() {
-        // ...código da função...
-    }
-    function popularModelos(g) {
-        // ...código da função...
-    }
-
-    // Colei as funções completas abaixo para garantir que nada se perca
     function inicializarPainel() {
         popularGrupos(); popularModelos(grupoSelect.value); renderizarDetalhes(modeloSelect.value);
         grupoSelect.addEventListener('change', e => { popularModelos(e.target.value); renderizarDetalhes(modeloSelect.value); });
         modeloSelect.addEventListener('change', e => renderizarDetalhes(e.target.value));
-        // O botão de dar baixa é recriado em renderizarDetalhes, então o listener precisa ser adicionado lá ou usar delegação de eventos.
     }
+
     function renderizarDetalhes(modelo) {
         const producaoHtml = `<h2 class="text-xl font-bold text-gray-800 mb-4">Registrar Produção</h2><div class="space-y-4"><div><label for="qtde-produzida" class="block text-sm font-medium text-gray-700">Quantidade de Pentes Feitos:</label><input type="number" id="qtde-produzida" class="mt-1 w-24" min="1" value="1" /></div><div><label for="parte-produzida" class="block text-sm font-medium text-gray-700">Qual parte foi feita?</label><select id="parte-produzida" class="mt-1"><option value="par">O Par Completo</option><option value="superior">Apenas Superior</option><option value="inferior">Apenas Inferior</option></select></div><div class="pt-2"><button id="btn-dar-baixa" class="btn btn-primary w-full">Concluir e Dar Baixa no Estoque</button></div></div>`;
         producaoPanel.innerHTML = producaoHtml;
         document.getElementById('btn-dar-baixa').addEventListener('click', handleDarBaixa);
 
-        if (!receitas[modelo]) {
-            detalhesPanel.innerHTML = `<div class="card text-center text-gray-500">Receita para o modelo <strong>${modelo}</strong> ainda não cadastrada.</div>`;
+        if (!receitas[modelo] || (Object.keys(receitas[modelo].inferior).length === 0 && Object.keys(receitas[modelo].superior).length === 0) ) {
+            detalhesPanel.innerHTML = `<div class="card text-center text-gray-500">Receita para o modelo <strong>${modelo}</strong> ainda não cadastrada ou incompleta.</div>`;
             producaoPanel.style.display = 'none'; return;
         }
+        
         producaoPanel.style.display = 'block';
         const receita = receitas[modelo];
         let html = `<h2 class="text-xl font-semibold text-gray-700 text-center mb-4">Componentes do Pente ${modelo}</h2>`;
@@ -176,6 +143,7 @@
         detalhesPanel.innerHTML = html;
         adicionarEventListenersAjuste();
     }
+
     function renderizarParte(nomeParte, receitaParte) {
         let parteHtml = `<div class="mb-6"><h3 class="text-lg font-bold text-blue-600 mb-3 pb-2 border-b">${nomeParte}</h3><div class="space-y-4">`;
         if (Object.keys(receitaParte).length === 0) {
@@ -187,11 +155,13 @@
         }
         return parteHtml + `</div></div>`;
     }
+
     async function fetchComPost(data) {
         const response = await fetch(SCRIPT_URL, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(data) });
         if (!response.ok) throw new Error('Falha de rede ao se comunicar com a planilha.');
         return response.json();
     }
+
     async function processarTransacao(items, successMessage) {
         setLoading(true, 'Processando transação...');
         try {
@@ -204,12 +174,7 @@
             await carregarDadosIniciais();
         }
     }
-    async function handleAjusteManual(cod, quantidade) {
-        if (!quantidade || isNaN(quantidade)) return;
-        const items = [{ cod: cod, qtde: quantidade }];
-        const successMessage = `Estoque de ${materiaPrima[cod]?.nome} ajustado em ${quantidade}.`;
-        await processarTransacao(items, successMessage);
-    }
+
     async function handleDarBaixa() {
         const modelo = modeloSelect.value, qtdeProduzida = parseInt(document.getElementById('qtde-produzida').value), parte = document.getElementById('parte-produzida').value;
         if (qtdeProduzida <= 0) { alert("Insira uma quantidade válida."); return; }
@@ -231,19 +196,23 @@
             await processarTransacao(itemsParaBaixa, successMessage);
         }
     }
+    
     function adicionarEventListenersAjuste() {
         document.querySelectorAll('button[data-btn-ajuste]').forEach(button => {
             button.onclick = async e => {
                 const cod = e.target.getAttribute('data-btn-ajuste');
                 const input = document.querySelector(`input[data-cod-ajuste="${cod}"]`);
-                await handleAjusteManual(cod, parseInt(input.value));
+                const items = [{ cod: cod, qtde: parseInt(input.value) || 0 }];
+                const successMessage = `Estoque de ${materiaPrima[cod]?.nome} ajustado.`;
+                await processarTransacao(items, successMessage);
             };
         });
     }
+    
     function popularGrupos() { Object.keys(pentes).forEach(g => grupoSelect.add(new Option(g, g))); }
     function popularModelos(g) { modeloSelect.innerHTML = ''; pentes[g].forEach(m => modeloSelect.add(new Option(m, m))); }
-    document.addEventListener('DOMContentLoaded', carregarDadosIniciais);
 
+    document.addEventListener('DOMContentLoaded', carregarDadosIniciais);
 </script>
 </body>
 </html>
