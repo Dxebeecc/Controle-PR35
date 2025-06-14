@@ -6,17 +6,17 @@
     <title>Painel de Controle de Pentes (Online)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; background-color: #f3f4f6; }
-        .card { background-color: white; border-radius: 0.75rem; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1); padding: 1.5rem; margin-bottom: 1.5rem; }
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; background-color: #111827; color: #d1d5db; }
+        .card { background-color: #1f2937; border: 1px solid #374151; border-radius: 0.75rem; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1); padding: 1.5rem; margin-bottom: 1.5rem; }
         .btn { padding: 0.625rem 1.25rem; border-radius: 0.5rem; color: white; font-weight: 600; cursor: pointer; transition: background-color 0.2s; user-select: none; }
-        .btn:disabled { background-color: #9ca3af; cursor: not-allowed; }
+        .btn:disabled { background-color: #4b5563; color: #9ca3af; cursor: not-allowed; }
         .btn-primary { background-color: #2563eb; }
-        .btn-primary:not(:disabled):hover { background-color: #1d4ed8; }
-        .btn-secondary { background-color: #6b7280; }
-        .btn-secondary:not(:disabled):hover { background-color: #4b5563; }
-        select, input[type="number"] { border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.5rem; transition: border-color 0.2s, box-shadow 0.2s; }
+        .btn-primary:not(:disabled):hover { background-color: #3b82f6; }
+        .btn-secondary { background-color: #4b5563; }
+        .btn-secondary:not(:disabled):hover { background-color: #52525b; }
+        select, input[type="number"] { background-color: #374151; color: #d1d5db; border: 1px solid #4b5563; border-radius: 0.5rem; padding: 0.5rem; transition: border-color 0.2s, box-shadow 0.2s; }
         select:focus, input[type="number"]:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25); outline: none; }
-        .loader { border: 4px solid #e5e7eb; border-radius: 50%; border-top: 4px solid #3b82f6; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
+        .loader { border: 4px solid #374151; border-radius: 50%; border-top: 4px solid #3b82f6; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
@@ -24,14 +24,14 @@
 
     <div class="max-w-2xl mx-auto">
         <div class="card">
-            <h1 class="text-2xl font-bold text-gray-800 mb-4">Painel de Controle de Pentes</h1>
+            <h1 class="text-2xl font-bold text-white mb-4">Painel de Controle de Pentes</h1>
             <div id="controles-selecao" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label for="grupo-pente" class="block text-sm font-medium text-gray-700">1. Selecione o Grupo:</label>
+                    <label for="grupo-pente" class="block text-sm font-medium text-gray-400">1. Selecione o Grupo:</label>
                     <select id="grupo-pente" class="mt-1 w-full"></select>
                 </div>
                 <div>
-                    <label for="modelo-pente" class="block text-sm font-medium text-gray-700">2. Selecione o Pente:</label>
+                    <label for="modelo-pente" class="block text-sm font-medium text-gray-400">2. Selecione o Pente:</label>
                     <select id="modelo-pente" class="mt-1 w-full"></select>
                 </div>
             </div>
@@ -45,17 +45,14 @@
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxo9PLLniGIK_9Bkc086W6yU51XKfL8FF-D5_tr54gETTerdQ0l01u_r4qAcyViRJIAtA/exec";
     let materiaPrima = {}, estoque = {}, receitas = {};
-    const pentes = {
-        "SC Convencional": ["SC700C", "SC850C", "SC1100C", "SC1400C"], "SC Reforçada": ["SC700REF", "SC850REF"],
-        "SCW": ["SCW"], "HSC": ["HSC850", "HSC1100", "HSC1400"], "HP": ["HP700", "HP1100"]
-    };
+    const pentes = { "SC Convencional": ["SC700C", "SC850C", "SC1100C", "SC1400C"], "SC Reforçada": ["SC700REF", "SC850REF"], "SCW": ["SCW"], "HSC": ["HSC850", "HSC1100", "HSC1400"], "HP": ["HP700", "HP1100"] };
     const grupoSelect = document.getElementById('grupo-pente'), modeloSelect = document.getElementById('modelo-pente'),
           detalhesPanel = document.getElementById('painel-detalhes'), producaoPanel = document.getElementById('painel-producao');
 
     function setLoading(isLoading, message = '') {
         document.querySelectorAll('button, select, input').forEach(el => el.disabled = isLoading);
         if (isLoading) {
-            detalhesPanel.innerHTML = `<div class="card text-center text-gray-600"><div class="loader"></div><p>${message}</p></div>`;
+            detalhesPanel.innerHTML = `<div class="card text-center"><div class="loader"></div><p>${message}</p></div>`;
         }
     }
 
@@ -69,7 +66,7 @@
             processarDados(result.data);
             inicializarPainel();
         } catch (error) {
-            detalhesPanel.innerHTML = `<div class="card text-center text-red-500"><strong>Erro ao carregar dados.</strong><br>${error.message}</div>`;
+            detalhesPanel.innerHTML = `<div class="card text-center text-red-400"><strong>Erro ao carregar dados.</strong><br>${error.message}</div>`;
         } finally {
             setLoading(false);
         }
@@ -83,7 +80,11 @@
             data.estoque.forEach(item => {
                 const cod = cleanString(item.cod_materia_prima);
                 if(cod) {
-                    materiaPrima[cod] = { nome: cleanString(item.nome_peca), tamanho: item.tamanho };
+                    materiaPrima[cod] = { 
+                        nome: cleanString(item.nome_peca), 
+                        tamanho: item.tamanho,
+                        estoque_minimo: Number(item.estoque_minimo) || 0
+                    };
                     estoque[cod] = Number(item.estoque_atual);
                 }
             });
@@ -92,13 +93,10 @@
             data.receitas.forEach(item => {
                 const modelo = cleanString(item.modelo_pente);
                 if (!modelo) return;
-
                 if (!receitas[modelo]) receitas[modelo] = { superior: {}, inferior: {} };
-                
                 const parte = cleanString(item.parte).toLowerCase();
                 const cod = cleanString(item.cod_materia_prima);
                 const qtde = item.qtd_usada;
-
                 if(parte && cod && (qtde || qtde === 0)) {
                     receitas[modelo][parte][cod] = Number(qtde);
                 }
@@ -115,18 +113,18 @@
     }
 
     function renderizarDetalhes(modelo) {
-        const producaoHtml = `<h2 class="text-xl font-bold text-gray-800 mb-4">Registrar Produção</h2><div class="space-y-4"><div><label for="qtde-produzida" class="block text-sm font-medium text-gray-700">Quantidade de Pentes Feitos:</label><input type="number" id="qtde-produzida" class="mt-1 w-24" min="1" value="1" /></div><div><label for="parte-produzida" class="block text-sm font-medium text-gray-700">Qual parte foi feita?</label><select id="parte-produzida" class="mt-1"><option value="par">O Par Completo</option><option value="superior">Apenas Superior</option><option value="inferior">Apenas Inferior</option></select></div><div class="pt-2"><button id="btn-dar-baixa" class="btn btn-primary w-full">Concluir e Dar Baixa no Estoque</button></div></div>`;
+        const producaoHtml = `<h2 class="text-xl font-bold text-white mb-4">Registrar Produção</h2><div class="space-y-4"><div><label for="qtde-produzida" class="block text-sm font-medium text-gray-400">Quantidade de Pentes Feitos:</label><input type="number" id="qtde-produzida" class="mt-1 w-24" min="1" value="1" /></div><div><label for="parte-produzida" class="block text-sm font-medium text-gray-400">Qual parte foi feita?</label><select id="parte-produzida" class="mt-1"><option value="par">O Par Completo</option><option value="superior">Apenas Superior</option><option value="inferior">Apenas Inferior</option></select></div><div class="pt-2"><button id="btn-dar-baixa" class="btn btn-primary w-full">Concluir e Dar Baixa no Estoque</button></div></div>`;
         producaoPanel.innerHTML = producaoHtml;
         document.getElementById('btn-dar-baixa').addEventListener('click', handleDarBaixa);
 
         if (!receitas[modelo] || (Object.keys(receitas[modelo].inferior).length === 0 && Object.keys(receitas[modelo].superior).length === 0)) {
-            detalhesPanel.innerHTML = `<div class="card text-center text-gray-500">Receita para o modelo <strong>${modelo}</strong> ainda não cadastrada ou incompleta.</div>`;
+            detalhesPanel.innerHTML = `<div class="card text-center text-gray-400">Receita para o modelo <strong>${modelo}</strong> ainda não cadastrada ou incompleta.</div>`;
             producaoPanel.style.display = 'none'; return;
         }
         
         producaoPanel.style.display = 'block';
         const receita = receitas[modelo];
-        let html = `<h2 class="text-xl font-semibold text-gray-700 text-center mb-4">Componentes do Pente ${modelo}</h2>`;
+        let html = `<h2 class="text-xl font-semibold text-white text-center mb-4">Componentes do Pente ${modelo}</h2>`;
         html += renderizarParte('INFERIOR', receita.inferior);
         html += renderizarParte('SUPERIOR', receita.superior);
         detalhesPanel.innerHTML = html;
@@ -134,12 +132,21 @@
     }
 
     function renderizarParte(nomeParte, receitaParte) {
-        let parteHtml = `<div class="mb-6"><h3 class="text-lg font-bold text-blue-600 mb-3 pb-2 border-b">${nomeParte}</h3><div class="space-y-4">`;
+        let parteHtml = `<div class="mb-6"><h3 class="text-lg font-bold text-blue-400 mb-3 pb-2 border-b border-gray-700">${nomeParte}</h3><div class="space-y-4">`;
         if (Object.keys(receitaParte).length === 0) {
             parteHtml += `<div class="p-4 text-center text-sm text-gray-500">Receita para a parte ${nomeParte.toLowerCase()} não cadastrada.</div>`;
         } else {
             for (const cod in receitaParte) {
-                parteHtml += `<div class="p-4 border rounded-lg bg-gray-50 shadow-sm"><p class="font-bold text-lg text-gray-800">${materiaPrima[cod]?.nome || 'Peça não encontrada no estoque'}</p><div class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm"><div><span class="text-gray-500">Estoque:</span><span class="font-semibold text-base text-blue-700 ml-1">${estoque[cod] ?? 'N/A'}</span></div><div><span class="text-gray-500">Código:</span> <span class="font-mono text-gray-700">${cod}</span></div><div><span class="text-gray-500">Tamanho:</span> <span class="font-semibold text-gray-700">${materiaPrima[cod]?.tamanho || 'N/A'}</span></div></div><div class="mt-4 pt-4 border-t border-gray-200 flex items-center gap-2"><label class="text-sm font-medium text-gray-600">Ajuste Manual:</label><input type="number" class="w-20 p-2 text-sm" data-cod-ajuste="${cod}" placeholder="+/-" /><button class="btn btn-secondary text-xs py-2 px-3" data-btn-ajuste="${cod}">OK</button></div></div>`;
+                const stockAtual = estoque[cod] ?? 'N/A';
+                const stockMin = materiaPrima[cod]?.estoque_minimo || 0;
+                let corEstoque = 'text-blue-400';
+                if (stockAtual <= stockMin) {
+                    corEstoque = 'text-red-400 font-extrabold';
+                } else if (stockAtual <= stockMin * 1.5) {
+                    corEstoque = 'text-yellow-400';
+                }
+
+                parteHtml += `<div class="p-4 border border-gray-700 rounded-lg bg-gray-800 shadow-sm"><p class="font-bold text-lg text-white">${materiaPrima[cod]?.nome || 'N/A'}</p><div class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm"><div><span class="text-gray-400">Estoque:</span><span class="font-semibold text-base ${corEstoque} ml-1">${stockAtual}</span></div><div><span class="text-gray-400">Código:</span> <span class="font-mono text-gray-300">${cod}</span></div><div><span class="text-gray-400">Tamanho:</span> <span class="font-semibold text-gray-300">${materiaPrima[cod]?.tamanho || 'N/A'}</span></div></div><div class="mt-4 pt-4 border-t border-gray-700 flex items-center gap-2"><label class="text-sm font-medium text-gray-400">Ajuste Manual:</label><input type="number" class="w-20 p-2 text-sm" data-cod-ajuste="${cod}" placeholder="+/-" /><button class="btn btn-secondary text-xs py-2 px-3" data-btn-ajuste="${cod}">OK</button></div></div>`;
             }
         }
         return parteHtml + `</div></div>`;
@@ -165,31 +172,18 @@
     }
 
     async function handleDarBaixa() {
-        const modelo = modeloSelect.value, qtdeProduzida = parseInt(document.getElementById('qtde-produzida').value), parte = document.getElementById('parte-produzida').value;
-        if (qtdeProduzida <= 0) { alert("Insira uma quantidade válida."); return; }
-        
-        const receitaCompleta = receitas[modelo];
-        let itemsParaBaixa = [];
-        const adicionarNaLista = (receitaParte, nomeDaParte) => {
-            if (!receitaParte || Object.keys(receitaParte).length === 0) { alert(`A receita para a parte "${nomeDaParte}" não está cadastrada ou está incompleta.`); return false; }
-            for (const cod in receitaParte) {
-                if (estoque[cod] === undefined) { alert(`Erro: A matéria-prima "${cod}", da receita, não foi encontrada na sua aba de Estoque.`); return false; }
-                const qtdeConsumida = receitaParte[cod] * qtdeProduzida;
-                if (estoque[cod] < qtdeConsumida) { alert(`Estoque insuficiente de ${materiaPrima[cod]?.nome}! Necessário: ${qtdeConsumida}, Disponível: ${estoque[cod]}.`); return false; }
-                itemsParaBaixa.push({ cod: cod, qtde: -qtdeConsumida });
-            }
-            return true;
-        };
-        
-        if (parte === 'superior' || parte === 'par') { if (!adicionarNaLista(receitaCompleta.superior, 'Superior')) return; }
-        if (parte === 'inferior' || parte === 'par') { if (!adicionarNaLista(receitaCompleta.inferior, 'Inferior')) return; }
-        
-        if (itemsParaBaixa.length > 0) {
-            const successMessage = `Baixa de ${qtdeProduzida} pente(s) ${modelo} (${parte}) realizada com sucesso!`;
-            await processarTransacao(itemsParaBaixa, successMessage);
-        }
+        //... (lógica de dar baixa continua a mesma)
     }
     
+    function adicionarEventListenersAjuste() {
+        //... (lógica de ajuste manual continua a mesma)
+    }
+    
+    // As funções completas abaixo para garantir
+    function popularGrupos() { Object.keys(pentes).forEach(g => grupoSelect.add(new Option(g, g))); }
+    function popularModelos(g) { modeloSelect.innerHTML = ''; pentes[g].forEach(m => modeloSelect.add(new Option(m, m))); }
+    document.addEventListener('DOMContentLoaded', carregarDadosIniciais);
+
     function adicionarEventListenersAjuste() {
         document.querySelectorAll('button[data-btn-ajuste]').forEach(button => {
             button.onclick = async e => {
@@ -204,10 +198,28 @@
         });
     }
 
-    function popularGrupos() { Object.keys(pentes).forEach(g => grupoSelect.add(new Option(g, g))); }
-    function popularModelos(g) { modeloSelect.innerHTML = ''; pentes[g].forEach(m => modeloSelect.add(new Option(m, m))); }
+    async function handleDarBaixa() {
+        const modelo = modeloSelect.value, qtdeProduzida = parseInt(document.getElementById('qtde-produzida').value), parte = document.getElementById('parte-produzida').value;
+        if (qtdeProduzida <= 0) { alert("Insira uma quantidade válida."); return; }
+        const receitaCompleta = receitas[modelo]; let itemsParaBaixa = [];
+        const adicionarNaLista = (receitaParte, nomeDaParte) => {
+            if (!receitaParte || Object.keys(receitaParte).length === 0) { alert(`A receita para a parte "${nomeDaParte}" não está cadastrada ou está incompleta.`); return false; }
+            for (const cod in receitaParte) {
+                if (estoque[cod] === undefined) { alert(`Erro: A matéria-prima "${cod}", da receita, não foi encontrada na sua aba de Estoque.`); return false; }
+                const qtdeConsumida = receitaParte[cod] * qtdeProduzida;
+                if (estoque[cod] < qtdeConsumida) { alert(`Estoque insuficiente de ${materiaPrima[cod]?.nome}! Necessário: ${qtdeConsumida}, Disponível: ${estoque[cod]}.`); return false; }
+                itemsParaBaixa.push({ cod: cod, qtde: -qtdeConsumida });
+            }
+            return true;
+        };
+        if (parte === 'superior' || parte === 'par') { if (!adicionarNaLista(receitaCompleta.superior, 'Superior')) return; }
+        if (parte === 'inferior' || parte === 'par') { if (!adicionarNaLista(receitaCompleta.inferior, 'Inferior')) return; }
+        if (itemsParaBaixa.length > 0) {
+            const successMessage = `Baixa de ${qtdeProduzida} pente(s) ${modelo} (${parte}) realizada com sucesso!`;
+            await processarTransacao(itemsParaBaixa, successMessage);
+        }
+    }
 
-    document.addEventListener('DOMContentLoaded', carregarDadosIniciais);
 </script>
 </body>
 </html>
